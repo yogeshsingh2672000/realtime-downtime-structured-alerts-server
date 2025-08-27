@@ -217,3 +217,7 @@ type AlertDestination = {
 
 - Cookie format and responses are designed to match the Next.js routes under `src/app/api/*` in the web app.
 - This server uses the `session` cookie value to key a global in-memory store, just like the Next.js in-memory approach.
+
+## Production build url
+
+- https://realtime-downtime-structured-alerts-cjc5.onrender.com/
