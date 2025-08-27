@@ -14,9 +14,9 @@ authRouter.post("/login", (_req, res) => {
   };
   res
     .cookie("session", JSON.stringify({ sessionId, user: mockUser }), {
-      httpOnly: false, // disable for testing purposes
+      httpOnly: true,
       sameSite: "lax",
-      secure: false, // disable for testing purposes
+      secure: true,
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     })
@@ -27,9 +27,9 @@ authRouter.post("/login", (_req, res) => {
 authRouter.post("/logout", (_req, res) => {
   res
     .cookie("session", "", {
-      httpOnly: false, // disable for testing purposes
+      httpOnly: true,
       sameSite: "lax",
-      secure: false, // disable for testing purposes
+      secure: true,
       path: "/",
       maxAge: 0,
     })
