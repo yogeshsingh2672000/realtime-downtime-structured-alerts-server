@@ -41,16 +41,14 @@ export const alertsRouter = Router();
 
 // GET /api/alerts
 alertsRouter.get("/", (req: Request, res: Response) => {
-  const sessionId = getSessionIdFromCookie(req);
-  if (!sessionId) return res.json({ items: [] });
+  const sessionId = getSessionIdFromCookie(req) ?? "default";
   const items = sessionIdToAlerts.get(sessionId) ?? [];
   return res.json({ items });
 });
 
 // POST /api/alerts
 alertsRouter.post("/", (req: Request, res: Response) => {
-  const sessionId = getSessionIdFromCookie(req);
-  if (!sessionId) return res.status(401).json({ error: "unauthorized" });
+  const sessionId = getSessionIdFromCookie(req) ?? "default";
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
 
@@ -68,8 +66,7 @@ alertsRouter.post("/", (req: Request, res: Response) => {
 
 // DELETE /api/alerts/:id
 alertsRouter.delete("/:id", (req: Request, res: Response) => {
-  const sessionId = getSessionIdFromCookie(req);
-  if (!sessionId) return res.status(401).json({ error: "unauthorized" });
+  const sessionId = getSessionIdFromCookie(req) ?? "default";
   const { id } = req.params;
   const existing = sessionIdToAlerts.get(sessionId) ?? [];
   const next = existing.filter((a) => a.id !== id);

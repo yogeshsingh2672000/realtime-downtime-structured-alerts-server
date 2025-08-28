@@ -1,53 +1,39 @@
 import { Router } from "express";
-import { z } from "zod";
 
 export const authRouter = Router();
 
-// POST /api/auth/login — issue session cookie with mock user
+// Hardcoded user for simplicity
+const HARDCODED_USER = {
+  id: "user_mock_google_1",
+  name: "Mock Google User",
+  email: "mock.user@gmail.com",
+  provider: "google",
+};
+
+// POST /api/auth/login — simple login response
 authRouter.post("/login", (_req, res) => {
-  const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
-  const mockUser = {
-    id: "user_mock_google_1",
-    name: "Mock Google User",
-    email: "mock.user@gmail.com",
-    provider: "google",
-  };
-  const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : true;
-  res
-    .cookie("session", JSON.stringify({ sessionId, user: mockUser }), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure,
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    })
-    .json({ ok: true, user: mockUser });
+  res.json({ 
+    ok: true, 
+    user: HARDCODED_USER,
+    message: "Login successful - using hardcoded authentication"
+  });
 });
 
-// POST /api/auth/logout — clear session cookie
+// POST /api/auth/logout — simple logout response
 authRouter.post("/logout", (_req, res) => {
-  const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : true;
-  res
-    .cookie("session", "", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure,
-      path: "/",
-      maxAge: 0,
-    })
-    .json({ ok: true });
+  res.json({ 
+    ok: true, 
+    message: "Logout successful"
+  });
 });
 
-// GET /api/auth/session — read session cookie
-authRouter.get("/session", (req, res) => {
-  const raw = req.cookies?.["session"];
-  if (!raw) return res.json({ authenticated: false, user: null });
-  try {
-    const parsed = JSON.parse(raw);
-    return res.json({ authenticated: true, user: parsed.user });
-  } catch {
-    return res.json({ authenticated: false, user: null });
-  }
+// GET /api/auth/session — always return authenticated user
+authRouter.get("/session", (_req, res) => {
+  res.json({ 
+    authenticated: true, 
+    user: HARDCODED_USER,
+    message: "Using hardcoded authentication"
+  });
 });
 
 
