@@ -218,6 +218,29 @@ type AlertDestination = {
 - Cookie format and responses are designed to match the Next.js routes under `src/app/api/*` in the web app.
 - This server uses the `session` cookie value to key a global in-memory store, just like the Next.js in-memory approach.
 
+### Users Routes
+
+Base path: `/api/users`
+
+- `GET /api/users` — list users
+- `GET /api/users/:id` — get user by id
+- `POST /api/users` — create user
+  - Example body:
+  ```json
+  {
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone_number": null,
+    "date_of_birth": null,
+    "admin": false
+  }
+  ```
+- `PUT /api/users/:id` — update user (send any subset of fields above)
+- `DELETE /api/users/:id` — delete user
+
+Responses are JSON. Errors follow the global error handler format `{ "error": string }`.
+
 ## Production build url
 
 - https://realtime-downtime-structured-alerts-cjc5.onrender.com/

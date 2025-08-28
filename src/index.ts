@@ -12,6 +12,7 @@ const pinoHttp = require("pino-http");
 import createError from "http-errors";
 
 import { registerRoutes } from "./routes/index.js";
+import 'dotenv/config';
 
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 
