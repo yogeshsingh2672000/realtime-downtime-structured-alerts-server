@@ -30,7 +30,18 @@ modelsRouter.get("/", async (_req, res, next) => {
 // Create model
 modelsRouter.post("/", async (req, res, next) => {
 	try {
-		const created = await ModelsRepository.createModel(req.body);
+		const updatedByInput = req.body.updatedBy ?? req.body.updated_by ?? req.headers["x-user-name"];
+		if (typeof updatedByInput !== "string" || !/\S+\s-\s\S+/.test(updatedByInput)) {
+			return res.status(400).json({ error: "updated_by_required_format: 'id - full name'" });
+		}
+		const body = {
+			model_name: req.body.modelName ?? req.body.model_name ?? null,
+			model_provider: req.body.provider ?? req.body.model_provider ?? null,
+			description: req.body.description ?? null,
+			version: req.body.version ?? null,
+			updated_by: updatedByInput,
+		};
+		const created = await ModelsRepository.createModel(body as any);
 		res.status(201).json({ item: mapModelForClient(created) });
 	} catch (err) {
 		next(err);
@@ -41,7 +52,18 @@ modelsRouter.post("/", async (req, res, next) => {
 modelsRouter.put("/:id", async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
-		const body = { ...req.body, updated_at: new Date().toISOString() };
+		const updatedByInput = req.body.updatedBy ?? req.body.updated_by ?? req.headers["x-user-name"];
+		if (typeof updatedByInput !== "string" || !/\S+\s-\s\S+/.test(updatedByInput)) {
+			return res.status(400).json({ error: "updated_by_required_format: 'id - full name'" });
+		}
+		const body = {
+			model_name: req.body.modelName ?? req.body.model_name,
+			model_provider: req.body.provider ?? req.body.model_provider,
+			description: req.body.description,
+			version: req.body.version,
+			updated_by: updatedByInput,
+			updated_at: new Date().toISOString(),
+		} as any;
 		const updated = await ModelsRepository.updateModel(id, body);
 		res.json({ item: mapModelForClient(updated) });
 	} catch (err) {
