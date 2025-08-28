@@ -39,9 +39,9 @@ export async function updateUserModelMap(id: number, values: UpdateUserModelMapp
 
 export async function deleteUserModelMap(id: number): Promise<boolean> {
 	const supabase = getSupabaseClient('service_role');
-	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+	const { data, error } = await supabase.from(TABLE).delete().eq('id', id).select('id');
 	if (error) throw dbError('Failed to delete user_model_mapper', error);
-	return true;
+	return Array.isArray(data) ? data.length > 0 : false;
 }
 
 export async function getUserModels(userId: number): Promise<number[] | null> {
@@ -53,6 +53,20 @@ export async function getUserModels(userId: number): Promise<number[] | null> {
 		.maybeSingle();
 	if (error) throw dbError('Failed to fetch user models', error);
 	return (data?.model_id as number[] | null) ?? null;
+}
+
+export async function getUserModelMapByUserId(userId: number): Promise<UserModelMapper | null> {
+	const supabase = getSupabaseClient('service_role');
+	const { data, error } = await supabase.from(TABLE).select('*').eq('user_id', userId).maybeSingle();
+	if (error) throw dbError('Failed to fetch user_model_mapper by user', error);
+	return (data as UserModelMapper) ?? null;
+}
+
+export async function listUserModelMapsByUser(userId: number): Promise<UserModelMapper[]> {
+	const supabase = getSupabaseClient('service_role');
+	const { data, error } = await supabase.from(TABLE).select('*').eq('user_id', userId).order('id', { ascending: true });
+	if (error) throw dbError('Failed to list user_model_mapper by user', error);
+	return (data as UserModelMapper[]) ?? [];
 }
 
 

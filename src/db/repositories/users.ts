@@ -44,4 +44,21 @@ export async function deleteUser(id: number): Promise<boolean> {
 	return true;
 }
 
+export async function getUserByEmail(email: string): Promise<User | null> {
+	const supabase = getSupabaseClient('service_role');
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select('*')
+		.eq('email', email)
+		.maybeSingle();
+	if (error) throw dbError('Failed to fetch user by email', error);
+	return (data as User) ?? null;
+}
+
+export async function createUserIfNotExists(values: InsertUser): Promise<User> {
+	const existing = values.email ? await getUserByEmail(values.email) : null;
+	if (existing) return existing;
+	return await createUser(values);
+}
+
 

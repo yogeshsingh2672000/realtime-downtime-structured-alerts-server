@@ -12,11 +12,12 @@ authRouter.post("/login", (_req, res) => {
     email: "mock.user@gmail.com",
     provider: "google",
   };
+  const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : true;
   res
     .cookie("session", JSON.stringify({ sessionId, user: mockUser }), {
       httpOnly: true,
       sameSite: "lax",
-      secure: true,
+      secure,
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     })
@@ -25,11 +26,12 @@ authRouter.post("/login", (_req, res) => {
 
 // POST /api/auth/logout — clear session cookie
 authRouter.post("/logout", (_req, res) => {
+  const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : true;
   res
     .cookie("session", "", {
       httpOnly: true,
       sameSite: "lax",
-      secure: true,
+      secure,
       path: "/",
       maxAge: 0,
     })
