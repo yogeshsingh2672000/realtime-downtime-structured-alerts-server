@@ -50,8 +50,22 @@ npm start
 
 - **PORT**: Server port (default `4000`).
 - **LOG_LEVEL**: Pino log level (default `info`).
-- **CORS**: Enabled with `origin: true` and `credentials: true`.
+- **CORS**: Environment-based configuration with allowed origins.
 - **Cookies**: `session` cookie is `httpOnly`, `sameSite: "lax"`, `secure: true`, `path: /`.
+
+#### CORS Configuration
+
+The server uses a strict CORS configuration that only allows requests from specific origins:
+
+**Allowed Origins:**
+- **Production**: `https://realtime-downtime-structured-alerts.vercel.app`
+- **Development**: `http://localhost:3000`
+
+**Security Features:**
+- Only the specified Vercel frontend URL can access the API in production
+- Localhost:3000 is allowed for development purposes
+- All other origins are blocked and logged
+- No environment variable configuration needed - URLs are hardcoded for security
 
 Notes:
 
