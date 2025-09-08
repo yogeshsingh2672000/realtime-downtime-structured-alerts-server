@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import compression from "compression";
@@ -11,8 +12,9 @@ const require = createRequire(import.meta.url);
 const pinoHttp = require("pino-http");
 import createError from "http-errors";
 
+import { sendDowntimeAlert } from "./services/index.js";
+
 import { registerRoutes } from "./routes/index.js";
-import 'dotenv/config';
 
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 
@@ -60,6 +62,10 @@ app.get("/version", (_req, res) => res.json({ version: process.env.npm_package_v
 
 // API routes
 registerRoutes(app);
+
+// const response = await sendDowntimeAlert('tiwariatul2544@gmail.com', 'Test Service', '1 hour', 'Test additional info');
+// console.log(response);
+
 
 // 404 handler
 app.use((_req, _res, next) => next(createError(404, "not_found")));

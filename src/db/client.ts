@@ -1,17 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { requireEnv } from '../utils/common.js';
 
 type SupabaseRole = 'anon' | 'service_role';
 
 let anonClient: SupabaseClient | null = null;
 let serviceClient: SupabaseClient | null = null;
-
-function requireEnv(name: string): string {
-	const value = process.env[name];
-	if (!value) {
-		throw new Error(`Missing required environment variable: ${name}`);
-	}
-	return value;
-}
 
 export function getSupabaseClient(role: SupabaseRole = 'service_role'): SupabaseClient {
 	const url = requireEnv('SUPABASE_URL');
