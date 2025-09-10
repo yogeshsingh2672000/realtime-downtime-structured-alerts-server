@@ -53,6 +53,16 @@ npm start
 - **CORS**: Environment-based configuration with allowed origins.
 - **Cookies**: `session` cookie is `httpOnly`, `sameSite: "lax"`, `secure: true`, `path: /`.
 
+#### Required Environment Variables
+
+- **SUPABASE_URL**: Supabase project URL
+- **SUPABASE_ANON_KEY**: Supabase anonymous key
+- **SUPABASE_SERVICE_ROLE_KEY**: Supabase service role key
+- **JWT_SECRET**: Secret key for JWT access tokens
+- **JWT_REFRESH_SECRET**: Secret key for JWT refresh tokens
+- **EMAIL_USERNAME**: Email address for sending emails
+- **EMAIL_APP_PASSWORD**: App password for email authentication
+
 #### CORS Configuration
 
 The server uses a strict CORS configuration that only allows requests from specific origins:
@@ -83,41 +93,90 @@ Notes:
 
 Base path: `/api/auth`
 
-6.1 POST /api/auth/login
+6.1 POST /api/auth/register
 
-- Issues a `session` cookie with a mock user.
-- Request body: none
-- Response 200
+- Creates a new user account with email, password, and phone number.
+- Request body (JSON):
 
 ```json
 {
-  "ok": true,
-  "user": {
-    "id": "user_mock_google_1",
-    "name": "Mock Google User",
-    "email": "mock.user@gmail.com",
-    "provider": "google"
-  }
+  "email": "user@example.com",
+  "username": "johndoe (optional)",
+  "password": "SecurePassword123!",
+  "phone_number": "+1234567890"
 }
 ```
 
-- Set-Cookie: `session={"sessionId":"sess_xxx","user":{...}}; HttpOnly; SameSite=Lax; Secure; Path=/; Max-Age=604800`
+- Validation: Email must be valid and unique; password must meet strength requirements; phone number must be unique.
+- Responses:
 
-  6.2 POST /api/auth/logout
+  - 201 Created
 
-- Clears the `session` cookie.
+  ```json
+  {
+    "ok": true,
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "username": "johndoe"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": 900,
+    "message": "Registration successful"
+  }
+  ```
+
+  - 400 Bad Request: `{ "error": "invalid_body", "details": [...] }`
+  - 409 Conflict: `{ "error": "email_exists|username_exists|phone_exists" }`
+
+6.2 POST /api/auth/login
+
+- Authenticates user with email and password.
+- Request body (JSON):
+
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+- Responses:
+
+  - 200 OK
+
+  ```json
+  {
+    "ok": true,
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "username": "johndoe"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": 900,
+    "message": "Login successful"
+  }
+  ```
+
+  - 400 Bad Request: `{ "error": "invalid_body" }`
+  - 401 Unauthorized: `{ "error": "invalid_credentials" }`
+  - 423 Locked: `{ "error": "account_locked" }`
+
+6.3 POST /api/auth/logout
+
+- Logs out user and invalidates session.
 - Request body: none
 - Response 200
 
 ```json
-{ "ok": true }
+{ "ok": true, "message": "Logout successful" }
 ```
 
-- Set-Cookie: `session=""; Max-Age=0; HttpOnly; SameSite=Lax; Secure; Path=/`
+6.4 GET /api/auth/session
 
-  6.3 GET /api/auth/session
-
-- Reads the `session` cookie to determine authentication state.
+- Checks current authentication status using access token.
+- Headers: `Authorization: Bearer <access_token>`
 - Response 200 (unauthenticated)
 
 ```json
@@ -130,13 +189,38 @@ Base path: `/api/auth`
 {
   "authenticated": true,
   "user": {
-    "id": "user_mock_google_1",
-    "name": "Mock Google User",
-    "email": "mock.user@gmail.com",
-    "provider": "google"
+    "id": 1,
+    "email": "user@example.com",
+    "username": "johndoe"
   }
 }
 ```
+
+6.5 POST /api/auth/refresh
+
+- Refreshes access token using refresh token.
+- Request body (JSON):
+
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+- Response 200
+
+```json
+{
+  "ok": true,
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 900,
+  "message": "Token refreshed successfully"
+}
+```
+
+- Errors:
+  - 400 Bad Request: `{ "error": "invalid_body" }`
+  - 401 Unauthorized: `{ "error": "invalid_token|invalid_session|expired_session" }`
 
 ### 7. Email Routes
 
