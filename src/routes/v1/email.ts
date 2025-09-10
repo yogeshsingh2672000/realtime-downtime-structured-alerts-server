@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { sendDowntimeAlert, sendUptimeAlert } from "../../services/sendEmail.js";
+import { authenticateToken } from "../../middleware/auth.js";
 
 const emailTriggerSchema = z.object({
   emailType: z.enum(["uptime", "downtime"]),
@@ -14,8 +15,12 @@ const emailTriggerSchema = z.object({
 export const emailRouter = Router();
 
 // POST /api/email/trigger
-emailRouter.post("/trigger", async (req: Request, res: Response) => {
+emailRouter.post("/trigger", authenticateToken, async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+    }
+
     const parsed = emailTriggerSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ 

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { ModelsRepository } from "../../db/index.js";
+import { authenticateToken } from "../../middleware/auth.js";
 
 function mapModelForClient(m: any) {
 	return {
@@ -16,8 +17,7 @@ function mapModelForClient(m: any) {
 
 export const modelsRouter = Router();
 
-// List models
-
+// List models (public - no auth required)
 modelsRouter.get("/", async (_req, res, next) => {
 	try {
 		const items = await ModelsRepository.listModels();
@@ -27,13 +27,14 @@ modelsRouter.get("/", async (_req, res, next) => {
 	}
 });
 
-// Create model
-modelsRouter.post("/", async (req, res, next) => {
+// Create model (authenticated users only)
+modelsRouter.post("/", authenticateToken, async (req, res, next) => {
 	try {
-		const updatedByInput = req.body.updatedBy ?? req.body.updated_by ?? req.headers["x-user-name"];
-		if (typeof updatedByInput !== "string" || !/\S+\s-\s\S+/.test(updatedByInput)) {
-			return res.status(400).json({ error: "updated_by_required_format: 'id - full name'" });
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
 		}
+
+		const updatedByInput = `${req.user.id} - ${req.user.username}`;
 		const body = {
 			model_name: req.body.modelName ?? req.body.model_name ?? null,
 			model_provider: req.body.provider ?? req.body.model_provider ?? null,
@@ -48,14 +49,15 @@ modelsRouter.post("/", async (req, res, next) => {
 	}
 });
 
-// Update model
-modelsRouter.put("/:id", async (req, res, next) => {
+// Update model (authenticated users only)
+modelsRouter.put("/:id", authenticateToken, async (req, res, next) => {
 	try {
-		const id = Number(req.params.id);
-		const updatedByInput = req.body.updatedBy ?? req.body.updated_by ?? req.headers["x-user-name"];
-		if (typeof updatedByInput !== "string" || !/\S+\s-\s\S+/.test(updatedByInput)) {
-			return res.status(400).json({ error: "updated_by_required_format: 'id - full name'" });
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
 		}
+
+		const id = Number(req.params.id);
+		const updatedByInput = `${req.user.id} - ${req.user.username}`;
 		const body = {
 			model_name: req.body.modelName ?? req.body.model_name,
 			model_provider: req.body.provider ?? req.body.model_provider,
@@ -71,9 +73,13 @@ modelsRouter.put("/:id", async (req, res, next) => {
 	}
 });
 
-// Delete model
-modelsRouter.delete("/:id", async (req, res, next) => {
+// Delete model (authenticated users only)
+modelsRouter.delete("/:id", authenticateToken, async (req, res, next) => {
 	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+		}
+
 		const id = Number(req.params.id);
 		await ModelsRepository.deleteModel(id);
 		res.status(204).send();

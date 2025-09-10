@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserModelMapperRepository } from "../../db/index.js";
+import { authenticateToken } from "../../middleware/auth.js";
 
 export const userModelMapperRouter = Router();
 
@@ -13,9 +14,13 @@ function mapForClient(r: any) {
 	};
 }
 
-// List
-userModelMapperRouter.get("/", async (req, res, next) => {
+// List (authenticated users only)
+userModelMapperRouter.get("/", authenticateToken, async (req, res, next) => {
 	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+		}
+
 		const hasUserId = typeof req.query.userId !== 'undefined';
 		const parsed = hasUserId ? Number(req.query.userId) : undefined;
 		if (hasUserId && (parsed == null || Number.isNaN(parsed))) {
@@ -31,9 +36,13 @@ userModelMapperRouter.get("/", async (req, res, next) => {
 	}
 });
 
-// Create
-userModelMapperRouter.post("/", async (req, res, next) => {
+// Create (authenticated users only)
+userModelMapperRouter.post("/", authenticateToken, async (req, res, next) => {
 	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+		}
+
 		const created = await UserModelMapperRepository.createUserModelMap(req.body);
 		res.status(201).json({ item: mapForClient(created) });
 	} catch (err) {
@@ -41,9 +50,13 @@ userModelMapperRouter.post("/", async (req, res, next) => {
 	}
 });
 
-// Update
-userModelMapperRouter.put("/:id", async (req, res, next) => {
+// Update (authenticated users only)
+userModelMapperRouter.put("/:id", authenticateToken, async (req, res, next) => {
 	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+		}
+
 		const id = Number(req.params.id);
 		const body = { ...req.body, updated_at: new Date().toISOString() };
 		const updated = await UserModelMapperRepository.updateUserModelMap(id, body);
@@ -53,9 +66,13 @@ userModelMapperRouter.put("/:id", async (req, res, next) => {
 	}
 });
 
-// Delete
-userModelMapperRouter.delete("/:id", async (req, res, next) => {
+// Delete (authenticated users only)
+userModelMapperRouter.delete("/:id", authenticateToken, async (req, res, next) => {
 	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+		}
+
 		const id = Number(req.params.id);
 		const deleted = await UserModelMapperRepository.deleteUserModelMap(id);
 		if (!deleted) return res.status(404).json({ error: "not_found" });

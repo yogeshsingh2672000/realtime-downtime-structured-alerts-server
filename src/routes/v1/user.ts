@@ -1,5 +1,6 @@
 import { Router, Request } from "express";
 import { UsersRepository } from "../../db/index.js";
+import { authenticateToken } from "../../middleware/auth.js";
 
 function mapUserForClient(u: any) {
 	return {
@@ -15,29 +16,16 @@ function mapUserForClient(u: any) {
 	};
 }
 
-type SessionCookie = {
-	sessionId: string;
-	user: { id: string; name: string; email: string; provider: string };
-};
-
-function getSession(req: Request): SessionCookie | null {
-	const raw = req.cookies?.["session"];
-	if (!raw) return null;
-	try {
-		return JSON.parse(raw) as SessionCookie;
-	} catch {
-		return null;
-	}
-}
-
 export const userRouter = Router();
 
-// GET /api/user — fetch profile for current session user (by email)
-userRouter.get("/", async (req, res, next) => {
+// GET /api/user — fetch profile for current authenticated user
+userRouter.get("/", authenticateToken, async (req, res, next) => {
 	try {
-		const session = getSession(req);
-		const email = session?.user?.email ?? "yk.kumar2672@gmail.com";
-		const found = await UsersRepository.getUserByEmail(email);
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
+		}
+
+		const found = await UsersRepository.getUserById(req.user.id);
 		if (!found) return res.json({ profile: null });
 		res.json({ profile: mapUserForClient(found) });
 	} catch (err) {
@@ -45,17 +33,19 @@ userRouter.get("/", async (req, res, next) => {
 	}
 });
 
-// PUT /api/user — upsert profile for current session user (by email)
-userRouter.put("/", async (req, res, next) => {
+// PUT /api/user — update profile for current authenticated user
+userRouter.put("/", authenticateToken, async (req, res, next) => {
 	try {
-		const session = getSession(req);
-		const email = session?.user?.email ?? "yk.kumar2672@gmail.com";
-		const existing = await UsersRepository.getUserByEmail(email);
-		if (!existing) {
-			const created = await UsersRepository.createUserIfNotExists({ ...req.body, email });
-			return res.json({ profile: mapUserForClient(created) });
+		if (!req.user) {
+			return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
 		}
-		const updated = await UsersRepository.updateUser(existing.id, { ...req.body, email });
+
+		const existing = await UsersRepository.getUserById(req.user.id);
+		if (!existing) {
+			return res.status(404).json({ error: 'not_found', message: 'User not found' });
+		}
+
+		const updated = await UsersRepository.updateUser(req.user.id, req.body);
 		return res.json({ profile: mapUserForClient(updated) });
 	} catch (err) {
 		next(err);

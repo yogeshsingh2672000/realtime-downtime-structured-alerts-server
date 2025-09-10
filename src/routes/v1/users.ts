@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { UsersRepository } from "../../db/index.js";
+import { authenticateToken } from "../../middleware/auth.js";
 
 export const usersRouter = Router();
 
-// Create user
-usersRouter.post("/", async (req, res, next) => {
+// Create user (admin only)
+usersRouter.post("/", authenticateToken, async (req, res, next) => {
 	try {
 		const created = await UsersRepository.createUser(req.body);
 		res.status(201).json(created);
@@ -13,8 +14,8 @@ usersRouter.post("/", async (req, res, next) => {
 	}
 });
 
-// List users
-usersRouter.get("/", async (_req, res, next) => {
+// List users (admin only)
+usersRouter.get("/", authenticateToken, async (_req, res, next) => {
 	try {
 		const users = await UsersRepository.listUsers();
 		res.json(users);
@@ -23,8 +24,8 @@ usersRouter.get("/", async (_req, res, next) => {
 	}
 });
 
-// Get by id
-usersRouter.get("/:id", async (req, res, next) => {
+// Get by id (admin only)
+usersRouter.get("/:id", authenticateToken, async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
 		const user = await UsersRepository.getUserById(id);
@@ -35,8 +36,8 @@ usersRouter.get("/:id", async (req, res, next) => {
 	}
 });
 
-// Update by id
-usersRouter.put("/:id", async (req, res, next) => {
+// Update by id (admin only)
+usersRouter.put("/:id", authenticateToken, async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
 		const updated = await UsersRepository.updateUser(id, req.body);
@@ -46,8 +47,8 @@ usersRouter.put("/:id", async (req, res, next) => {
 	}
 });
 
-// Delete by id
-usersRouter.delete("/:id", async (req, res, next) => {
+// Delete by id (admin only)
+usersRouter.delete("/:id", authenticateToken, async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
 		await UsersRepository.deleteUser(id);
