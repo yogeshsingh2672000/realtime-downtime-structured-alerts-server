@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { createAuth, getAuthByEmail, getAuthByUsername, getAuthByPhoneNumber, incrementFailedAttempts, resetFailedAttempts, updateLastLogin, lockAccount } from "../../db/repositories/auth.js";
+import { createUser, getUserByEmail, getUserByUsername, getUserByPhoneNumber, incrementFailedAttempts, resetFailedAttempts, updateLastLogin, lockAccount, debugPhoneNumbers } from "../../db/repositories/users.js";
 import { createSession, deleteSessionByRefreshToken, deleteAllUserSessions, getSessionByRefreshToken, updateSession } from "../../db/repositories/sessions.js";
 import { generateTokenPair, verifyAccessToken, verifyRefreshToken, extractTokenFromHeader } from "../../utils/jwt.js";
 import { hashPassword, comparePassword, validatePasswordStrength } from "../../utils/password.js";
@@ -10,9 +10,13 @@ export const authRouter = Router();
 // Validation schemas
 const registerSchema = z.object({
   email: z.string().email("Invalid email format"),
-  username: z.string().min(3, "Username must be at least 3 characters").max(50, "Username must be less than 50 characters").optional(),
+  username: z.string().min(3, "Username must be at least 3 characters").max(50, "Username must be less than 50 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  phone_number: z.string().min(10, "Phone number must be at least 10 characters"),
+  phone_number: z.string().min(1, "Phone number is required").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  date_of_birth: z.string().optional(),
+  admin: z.boolean().optional(),
 });
 
 const loginSchema = z.object({
@@ -49,7 +53,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       });
     }
 
-    const { email, username, password, phone_number } = parsed.data;
+    const { email, username, password, phone_number, first_name, last_name, date_of_birth, admin } = parsed.data;
 
     // Validate password strength
     const passwordValidation = validatePasswordStrength(password);
@@ -61,7 +65,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     }
 
     // Check if email already exists
-    const existingEmail = await getAuthByEmail(email);
+    const existingEmail = await getUserByEmail(email);
     if (existingEmail) {
       return res.status(409).json({
         error: "email_exists",
@@ -69,19 +73,20 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       });
     }
 
-    // Check if username already exists (if provided)
-    if (username) {
-      const existingUsername = await getAuthByUsername(username);
-      if (existingUsername) {
-        return res.status(409).json({
-          error: "username_exists",
-          message: "Username is already taken"
-        });
-      }
+    // Check if username already exists
+    const existingUsername = await getUserByUsername(username);
+    if (existingUsername) {
+      return res.status(409).json({
+        error: "username_exists",
+        message: "Username is already taken"
+      });
     }
 
+    // Debug: Check all phone numbers in database
+    await debugPhoneNumbers();
+    
     // Check if phone number already exists
-    const existingPhone = await getAuthByPhoneNumber(phone_number);
+    const existingPhone = await getUserByPhoneNumber(phone_number);
     if (existingPhone) {
       return res.status(409).json({
         error: "phone_exists",
@@ -92,12 +97,16 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     // Hash password
     const password_hash = await hashPassword(password);
 
-    // Create auth record
-    const authRecord = await createAuth({
+    // Create user record
+    const userRecord = await createUser({
       email,
-      username: username || null,
+      username,
       password_hash,
       phone_number,
+      first_name: first_name || null,
+      last_name: last_name || null,
+      date_of_birth: date_of_birth || null,
+      admin: admin || false,
       email_verified: false,
       phone_verified: false,
       failed_attempts: 0,
@@ -107,9 +116,9 @@ authRouter.post("/register", async (req: Request, res: Response) => {
 
     // Generate tokens
     const tokens = generateTokenPair({
-      userId: authRecord.id,
-      email: authRecord.email,
-      username: authRecord.username || undefined,
+      userId: userRecord.id,
+      email: userRecord.email || '',
+      username: userRecord.username,
     });
 
     // Create session
@@ -118,7 +127,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
     await createSession({
-      user_id: authRecord.id,
+      user_id: userRecord.id,
       refresh_token: tokens.refreshToken,
       user_agent: userAgent,
       ip_address: ipAddress,
@@ -129,9 +138,9 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     res.cookie('session', JSON.stringify({
       sessionId: tokens.refreshToken,
       user: {
-        id: authRecord.id,
-        email: authRecord.email,
-        username: authRecord.username,
+        id: userRecord.id,
+        email: userRecord.email,
+        username: userRecord.username,
       }
     }), {
       httpOnly: true,
@@ -144,9 +153,9 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     return res.status(201).json({
       ok: true,
       user: {
-        id: authRecord.id,
-        email: authRecord.email,
-        username: authRecord.username,
+        id: userRecord.id,
+        email: userRecord.email,
+        username: userRecord.username,
       },
       accessToken: tokens.accessToken,
       expiresIn: tokens.expiresIn,
@@ -176,8 +185,8 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     const { email, password } = parsed.data;
 
     // Get user by email
-    const authRecord = await getAuthByEmail(email);
-    if (!authRecord) {
+    const userRecord = await getUserByEmail(email);
+    if (!userRecord) {
       return res.status(401).json({
         error: "invalid_credentials",
         message: "Invalid email or password"
@@ -185,7 +194,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     }
 
     // Check if account is locked
-    if (isAccountLocked(authRecord.locked_until)) {
+    if (isAccountLocked(userRecord.locked_until)) {
       return res.status(423).json({
         error: "account_locked",
         message: "Account is temporarily locked due to too many failed attempts"
@@ -193,16 +202,16 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     }
 
     // Verify password
-    const isValidPassword = await comparePassword(password, authRecord.password_hash);
+    const isValidPassword = await comparePassword(password, userRecord.password_hash);
     if (!isValidPassword) {
       // Increment failed attempts
-      const updatedAuth = await incrementFailedAttempts(authRecord.id);
+      const updatedUser = await incrementFailedAttempts(userRecord.id);
       
       // Lock account if too many failed attempts (5 attempts)
-      if (updatedAuth.failed_attempts && updatedAuth.failed_attempts >= 5) {
+      if (updatedUser.failed_attempts && updatedUser.failed_attempts >= 5) {
         const lockUntil = new Date();
         lockUntil.setMinutes(lockUntil.getMinutes() + 30); // Lock for 30 minutes
-        await lockAccount(authRecord.id, lockUntil);
+        await lockAccount(userRecord.id, lockUntil);
       }
 
       return res.status(401).json({
@@ -212,14 +221,14 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     }
 
     // Reset failed attempts on successful login
-    await resetFailedAttempts(authRecord.id);
-    await updateLastLogin(authRecord.id);
+    await resetFailedAttempts(userRecord.id);
+    await updateLastLogin(userRecord.id);
 
     // Generate tokens
     const tokens = generateTokenPair({
-      userId: authRecord.id,
-      email: authRecord.email,
-      username: authRecord.username || undefined,
+      userId: userRecord.id,
+      email: userRecord.email || '',
+      username: userRecord.username,
     });
 
     // Create session
@@ -228,7 +237,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
     await createSession({
-      user_id: authRecord.id,
+      user_id: userRecord.id,
       refresh_token: tokens.refreshToken,
       user_agent: userAgent,
       ip_address: ipAddress,
@@ -239,9 +248,9 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     res.cookie('session', JSON.stringify({
       sessionId: tokens.refreshToken,
       user: {
-        id: authRecord.id,
-        email: authRecord.email,
-        username: authRecord.username,
+        id: userRecord.id,
+        email: userRecord.email,
+        username: userRecord.username,
       }
     }), {
       httpOnly: true,
@@ -254,9 +263,9 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     return res.status(200).json({
     ok: true, 
       user: {
-        id: authRecord.id,
-        email: authRecord.email,
-        username: authRecord.username,
+        id: userRecord.id,
+        email: userRecord.email,
+        username: userRecord.username,
       },
       accessToken: tokens.accessToken,
       expiresIn: tokens.expiresIn,

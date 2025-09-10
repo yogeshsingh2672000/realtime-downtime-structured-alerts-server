@@ -1,6 +1,6 @@
-## Realtime Downtime Structured Alerts – Express Server
+## User Management API – Express Server
 
-This is a TypeScript Express server that mirrors the Next.js API from `realtime-downtime-structured-alerts` and follows modern production best practices: security headers, CORS, compression, structured logging, cookie-based session handling, input validation, error handling, and OpenAPI documentation.
+This is a TypeScript Express server that provides user authentication, management, and email services. It follows modern production best practices: security headers, CORS, compression, structured logging, JWT-based authentication, input validation, error handling, and OpenAPI documentation.
 
 ### 1. Stack and Features
 
@@ -20,8 +20,10 @@ src/
     index.ts              # Route registry
     v1/
       auth.ts             # /api/auth/* routes
-      alerts.ts           # /api/alerts/* routes
       docs.ts             # /api/docs/* routes
+      email.ts            # /api/email/* routes
+      users.ts            # /api/users/* routes
+      models.ts           # /api/models/* routes
 ```
 
 ### 3. Getting Started
@@ -68,18 +70,19 @@ npm start
 The server uses a strict CORS configuration that only allows requests from specific origins:
 
 **Allowed Origins:**
-- **Production**: `https://realtime-downtime-structured-alerts.vercel.app`
 - **Development**: `http://localhost:3000`
+- **Development**: `http://localhost:3001`
 
 **Security Features:**
-- Only the specified Vercel frontend URL can access the API in production
-- Localhost:3000 is allowed for development purposes
+- Only localhost development URLs are allowed
 - All other origins are blocked and logged
 - No environment variable configuration needed - URLs are hardcoded for security
 
 Notes:
 
-- Storage is in-memory and keyed by the `sessionId` inside the `session` cookie. Data is not persisted across restarts.
+- User data is stored in PostgreSQL database with proper authentication and session management.
+- JWT tokens are used for secure authentication with access and refresh token patterns.
+- Sessions are stored in the database and can be managed across server restarts.
 
 ### 5. Health and Docs
 
@@ -95,19 +98,23 @@ Base path: `/api/auth`
 
 6.1 POST /api/auth/register
 
-- Creates a new user account with email, password, and phone number.
+- Creates a new user account with email, username, password, and phone number.
 - Request body (JSON):
 
 ```json
 {
   "email": "user@example.com",
-  "username": "johndoe (optional)",
+  "username": "johndoe",
   "password": "SecurePassword123!",
-  "phone_number": "+1234567890"
+  "phone_number": 1234567890,
+  "first_name": "John (optional)",
+  "last_name": "Doe (optional)",
+  "date_of_birth": "1990-01-01 (optional)",
+  "admin": false
 }
 ```
 
-- Validation: Email must be valid and unique; password must meet strength requirements; phone number must be unique.
+- Validation: Email must be valid and unique; username must be unique; password must meet strength requirements; phone number must be unique integer.
 - Responses:
 
   - 201 Created
@@ -285,96 +292,14 @@ Base path: `/api/email`
   - 400 Bad Request: `{ "error": "missing_email" }`
   - 500 Internal Server Error: `{ "error": "email_send_failed" }`
 
-### 8. Alerts Routes
 
-Base path: `/api/alerts`
-
-Data model (in-memory per session):
-
-```ts
-type AlertDestination = {
-  id: string;
-  email: string;
-  llmProvider: string;
-  model: string;
-  createdAt: number;
-};
-```
-
-8.1 GET /api/alerts
-
-- Lists alerts for the current `sessionId`.
-- Requires: `session` cookie (if missing, returns empty list).
-- Response 200
-
-```json
-{
-  "items": [
-    {
-      "id": "alert_abc_1700000000000",
-      "email": "you@example.com",
-      "llmProvider": "openai",
-      "model": "gpt-4o-mini",
-      "createdAt": 1700000000000
-    }
-  ]
-}
-```
-
-8.2 POST /api/alerts
-
-- Creates a new alert for the current `sessionId`.
-- Requires: `session` cookie
-- Request body (JSON):
-
-```json
-{
-  "email": "you@example.com",
-  "llmProvider": "openai",
-  "model": "gpt-4o-mini"
-}
-```
-
-- Validation: `email` must be a valid email; `llmProvider` and `model` are non-empty strings.
-- Responses:
-
-  - 201 Created
-
-  ```json
-  {
-    "item": {
-      "id": "alert_def_1700000000001",
-      "email": "you@example.com",
-      "llmProvider": "openai",
-      "model": "gpt-4o-mini",
-      "createdAt": 1700000000001
-    }
-  }
-  ```
-
-  - 400 Bad Request: `{ "error": "invalid_body" }`
-  - 401 Unauthorized: `{ "error": "unauthorized" }`
-
-    8.3 DELETE /api/alerts/:id
-
-- Deletes a single alert by id for the current `sessionId`.
-- Requires: `session` cookie
-- Response 200
-
-```json
-{ "ok": true }
-```
-
-- Errors:
-  - 401 Unauthorized: `{ "error": "unauthorized" }`
-
-### 9. Error Handling
+### 8. Error Handling
 
 - Unknown routes → 404 `{ "error": "not_found" }`
 - Internal errors → 500 `{ "error": "internal_error" }`
 - Validation errors → 400 `{ "error": "invalid_body" }`
 
-### 10. Notes on Parity with Next.js App
+### 9. Notes on Parity with Next.js App
 
 - Cookie format and responses are designed to match the Next.js routes under `src/app/api/*` in the web app.
 - This server uses the `session` cookie value to key a global in-memory store, just like the Next.js in-memory approach.
@@ -404,4 +329,4 @@ Responses are JSON. Errors follow the global error handler format `{ "error": st
 
 ## Production build url
 
-- https://realtime-downtime-structured-alerts-cjc5.onrender.com/
+- Update this with your production deployment URL

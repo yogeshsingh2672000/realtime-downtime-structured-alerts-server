@@ -8,9 +8,16 @@ export interface User extends DbTimestamps {
 	first_name: string | null;
 	last_name: string | null;
 	email: string | null;
-	phone_number: number | null;
+	phone_number: string | null;
 	date_of_birth: string | null; // ISO date string
 	admin: boolean | null;
+	email_verified: boolean;
+	phone_verified: boolean;
+	failed_attempts: number;
+	last_login_at: string | null;
+	locked_until: string | null;
+	username: string;
+	password_hash: string;
 }
 
 export interface Model extends DbTimestamps {
@@ -26,19 +33,6 @@ export interface UserModelMapper extends DbTimestamps {
 	id: number;
 	user_id: number | null;
 	model_id: number[] | null;
-}
-
-export interface Auth extends DbTimestamps {
-	id: number;
-	email: string;
-	username: string | null;
-	password_hash: string;
-	phone_number: string;
-	email_verified: boolean | null;
-	phone_verified: boolean | null;
-	failed_attempts: number | null;
-	last_login_at: string | null;
-	locked_until: string | null;
 }
 
 export interface Session extends DbTimestamps {
@@ -58,9 +52,6 @@ export type UpdateModel = Partial<InsertModel>;
 
 export type InsertUserModelMapper = Omit<UserModelMapper, 'id' | keyof DbTimestamps>;
 export type UpdateUserModelMapper = Partial<InsertUserModelMapper>;
-
-export type InsertAuth = Omit<Auth, 'id' | keyof DbTimestamps>;
-export type UpdateAuth = Partial<InsertAuth>;
 
 export type InsertSession = Omit<Session, 'id' | keyof DbTimestamps>;
 export type UpdateSession = Partial<InsertSession>;

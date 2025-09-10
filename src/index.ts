@@ -12,7 +12,6 @@ const require = createRequire(import.meta.url);
 const pinoHttp = require("pino-http");
 import createError from "http-errors";
 
-import { sendDowntimeAlert } from "./services/index.js";
 
 import { registerRoutes } from "./routes/index.js";
 
@@ -22,8 +21,8 @@ const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 const getCorsOptions = () => {
   // Only allow these specific origins
   const allowedOrigins = [
-    'https://realtime-downtime-structured-alerts.vercel.app',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost:3001'
   ];
 
   return {
@@ -63,8 +62,6 @@ app.get("/version", (_req, res) => res.json({ version: process.env.npm_package_v
 // API routes
 registerRoutes(app);
 
-// const response = await sendDowntimeAlert('tiwariatul2544@gmail.com', 'Test Service', '1 hour', 'Test additional info');
-// console.log(response);
 
 
 // 404 handler
