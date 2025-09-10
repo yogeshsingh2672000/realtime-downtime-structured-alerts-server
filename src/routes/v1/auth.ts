@@ -134,21 +134,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       expires_at: expiresAt.toISOString(),
     });
 
-    // Set HTTP-only cookie
-    res.cookie('session', JSON.stringify({
-      sessionId: tokens.refreshToken,
-      user: {
-        id: userRecord.id,
-        email: userRecord.email,
-        username: userRecord.username,
-      }
-    }), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/'
-    });
+    // No cookies - tokens are handled by client
 
     return res.status(201).json({
       ok: true,
@@ -158,6 +144,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
         username: userRecord.username,
       },
       accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       expiresIn: tokens.expiresIn,
       message: "Registration successful"
     });
@@ -244,21 +231,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       expires_at: expiresAt.toISOString(),
     });
 
-    // Set HTTP-only cookie
-    res.cookie('session', JSON.stringify({
-      sessionId: tokens.refreshToken,
-      user: {
-        id: userRecord.id,
-        email: userRecord.email,
-        username: userRecord.username,
-      }
-    }), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/'
-    });
+    // No cookies - tokens are handled by client
 
     return res.status(200).json({
     ok: true, 
@@ -268,6 +241,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         username: userRecord.username,
       },
       accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       expiresIn: tokens.expiresIn,
       message: "Login successful"
     });
@@ -284,25 +258,12 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 // POST /api/auth/logout
 authRouter.post("/logout", async (req: Request, res: Response) => {
   try {
-    const sessionCookie = req.cookies?.session;
-    if (sessionCookie) {
-      try {
-        const sessionData = JSON.parse(sessionCookie);
-        if (sessionData.sessionId) {
-          await deleteSessionByRefreshToken(sessionData.sessionId);
-        }
-      } catch (error) {
-        // Ignore cookie parsing errors
-      }
+    // Get refresh token from request body
+    const { refresh_token } = req.body;
+    
+    if (refresh_token) {
+      await deleteSessionByRefreshToken(refresh_token);
     }
-
-    // Clear the session cookie
-    res.clearCookie('session', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/'
-    });
 
     return res.status(200).json({
     ok: true, 
@@ -410,25 +371,12 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
     });
 
-    // Update cookie
-    res.cookie('session', JSON.stringify({
-      sessionId: tokens.refreshToken,
-      user: {
-        id: payload.userId,
-        email: payload.email,
-        username: payload.username,
-      }
-    }), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/'
-    });
+    // No cookies - tokens are handled by client
 
     return res.status(200).json({
       ok: true,
       accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       expiresIn: tokens.expiresIn,
       message: "Token refreshed successfully"
     });
