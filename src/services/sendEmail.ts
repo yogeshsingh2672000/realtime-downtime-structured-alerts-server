@@ -120,3 +120,36 @@ export async function sendDowntimeAlert(
   
   return sendEmail({ to, subject, html });
 }
+
+/**
+ * Send an uptime alert email
+ * @param to - Recipient email address
+ * @param serviceName - Name of the service that is back up
+ * @param uptimeDuration - How long the service has been running
+ * @param additionalInfo - Any additional information about the uptime
+ * @returns Promise<boolean> - Returns true if email was sent successfully
+ */
+export async function sendUptimeAlert(
+  to: string, 
+  serviceName: string, 
+  uptimeDuration: string, 
+  additionalInfo?: string
+): Promise<boolean> {
+  const subject = `✅ Uptime Alert: ${serviceName}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2e7d32;">✅ Service Uptime Alert</h2>
+      <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #2e7d32;">
+        <h3 style="color: #2e7d32; margin-top: 0;">Service: ${serviceName}</h3>
+        <p><strong>Uptime Duration:</strong> ${uptimeDuration}</p>
+        <p><strong>Alert Time:</strong> ${new Date().toLocaleString()}</p>
+        ${additionalInfo ? `<p><strong>Additional Information:</strong> ${additionalInfo}</p>` : ''}
+      </div>
+      <p style="color: #666; font-size: 14px; margin-top: 20px;">
+        This is an automated alert from the Downtime Monitoring System.
+      </p>
+    </div>
+  `;
+  
+  return sendEmail({ to, subject, html });
+}

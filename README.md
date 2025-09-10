@@ -138,7 +138,70 @@ Base path: `/api/auth`
 }
 ```
 
-### 7. Alerts Routes
+### 7. Email Routes
+
+Base path: `/api/email`
+
+7.1 POST /api/email/trigger
+
+- Triggers an email alert (uptime or downtime) to the specified email address.
+- Request body (JSON):
+
+```json
+{
+  "emailType": "uptime" | "downtime",
+  "emailAddress": "you@example.com",
+  "modelName": "gpt-4o-mini",
+  "serviceName": "API Service (optional)",
+  "duration": "5 minutes (optional)",
+  "additionalInfo": "Additional details (optional)"
+}
+```
+
+- Validation: `emailType` must be "uptime" or "downtime"; `emailAddress` must be a valid email; `modelName` is required.
+- Responses:
+
+  - 200 OK
+
+  ```json
+  {
+    "ok": true,
+    "message": "uptime alert email sent successfully",
+    "details": {
+      "emailType": "uptime",
+      "emailAddress": "you@example.com",
+      "modelName": "API Service",
+      "duration": "5 minutes",
+      "timestamp": "2024-01-01T12:00:00.000Z"
+    }
+  }
+  ```
+
+  - 400 Bad Request: `{ "error": "invalid_body", "details": [...] }`
+  - 500 Internal Server Error: `{ "error": "email_send_failed" }`
+
+7.2 GET /api/email/test
+
+- Sends a test uptime alert email to verify email functionality.
+- Query parameters: `email` (required) - email address to send test to
+- Response 200
+
+```json
+{
+  "ok": true,
+  "message": "Test email sent successfully",
+  "details": {
+    "emailAddress": "test@example.com",
+    "timestamp": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+- Errors:
+  - 400 Bad Request: `{ "error": "missing_email" }`
+  - 500 Internal Server Error: `{ "error": "email_send_failed" }`
+
+### 8. Alerts Routes
 
 Base path: `/api/alerts`
 
@@ -154,7 +217,7 @@ type AlertDestination = {
 };
 ```
 
-7.1 GET /api/alerts
+8.1 GET /api/alerts
 
 - Lists alerts for the current `sessionId`.
 - Requires: `session` cookie (if missing, returns empty list).
@@ -174,7 +237,7 @@ type AlertDestination = {
 }
 ```
 
-7.2 POST /api/alerts
+8.2 POST /api/alerts
 
 - Creates a new alert for the current `sessionId`.
 - Requires: `session` cookie
@@ -208,7 +271,7 @@ type AlertDestination = {
   - 400 Bad Request: `{ "error": "invalid_body" }`
   - 401 Unauthorized: `{ "error": "unauthorized" }`
 
-    7.3 DELETE /api/alerts/:id
+    8.3 DELETE /api/alerts/:id
 
 - Deletes a single alert by id for the current `sessionId`.
 - Requires: `session` cookie
@@ -221,13 +284,13 @@ type AlertDestination = {
 - Errors:
   - 401 Unauthorized: `{ "error": "unauthorized" }`
 
-### 8. Error Handling
+### 9. Error Handling
 
 - Unknown routes → 404 `{ "error": "not_found" }`
 - Internal errors → 500 `{ "error": "internal_error" }`
 - Validation errors → 400 `{ "error": "invalid_body" }`
 
-### 9. Notes on Parity with Next.js App
+### 10. Notes on Parity with Next.js App
 
 - Cookie format and responses are designed to match the Next.js routes under `src/app/api/*` in the web app.
 - This server uses the `session` cookie value to key a global in-memory store, just like the Next.js in-memory approach.

@@ -4,6 +4,7 @@ export {
   sendSimpleEmail,
   sendHtmlEmail,
   sendDowntimeAlert,
+  sendUptimeAlert,
   verifyEmailConfig,
 } from './sendEmail.js';
 export type { EmailParams } from '../types/service/sendEmail.js';

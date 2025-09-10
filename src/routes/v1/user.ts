@@ -36,7 +36,7 @@ export const userRouter = Router();
 userRouter.get("/", async (req, res, next) => {
 	try {
 		const session = getSession(req);
-		const email = session?.user?.email ?? "mock.user@gmail.com";
+		const email = session?.user?.email ?? "yk.kumar2672@gmail.com";
 		const found = await UsersRepository.getUserByEmail(email);
 		if (!found) return res.json({ profile: null });
 		res.json({ profile: mapUserForClient(found) });
@@ -49,7 +49,7 @@ userRouter.get("/", async (req, res, next) => {
 userRouter.put("/", async (req, res, next) => {
 	try {
 		const session = getSession(req);
-		const email = session?.user?.email ?? "mock.user@gmail.com";
+		const email = session?.user?.email ?? "yk.kumar2672@gmail.com";
 		const existing = await UsersRepository.getUserByEmail(email);
 		if (!existing) {
 			const created = await UsersRepository.createUserIfNotExists({ ...req.body, email });
