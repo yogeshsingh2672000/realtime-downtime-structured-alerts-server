@@ -22,7 +22,8 @@ const getCorsOptions = () => {
   // Only allow these specific origins
   const allowedOrigins = [
     'http://localhost:3000',
-    'http://localhost:3001'
+    'http://localhost:3001',
+    'https://realtime-downtime-structured-alerts.vercel.app/'
   ];
 
   return {
