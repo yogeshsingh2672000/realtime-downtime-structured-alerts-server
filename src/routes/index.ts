@@ -6,6 +6,7 @@ import { modelsRouter } from "./v1/models.js";
 import { userRouter } from "./v1/user.js";
 import { userModelMapperRouter } from "./v1/userModelMapper.js";
 import { emailRouter } from "./v1/email.js";
+import { aiRouter } from "./v1/ai.js";
 
 export function registerRoutes(app: Express) {
   app.use("/api/auth", authRouter);
@@ -15,6 +16,7 @@ export function registerRoutes(app: Express) {
   app.use("/api/user", userRouter);
   app.use("/api/user-model-mapper", userModelMapperRouter);
   app.use("/api/email", emailRouter);
+  app.use("/api/ai", aiRouter);
 }
 
 
